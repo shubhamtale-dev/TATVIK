@@ -49,3 +49,38 @@ export interface DatasetPreviewData {
   selected_sheet?: string | null;
   notice?: string | null;
 }
+
+export interface QualityIssueItem {
+  id: string;
+  row_index?: number | null;
+  column_name?: string | null;
+  category: string;
+  issue_type: string;
+  severity: 'high' | 'medium' | 'low' | 'info';
+  current_value?: unknown;
+  explanation: string;
+  suggested_action?: string | null;
+}
+
+export interface QualityAnalysisResult {
+  filename: string;
+  file_type: string;
+  total_rows: number;
+  total_columns: number;
+  total_cells: number;
+  quality_score: number;
+  score_grade: string;
+  scoring_formula_explanation: string;
+  category_counts: Record<string, number>;
+  severity_counts: Record<string, number>;
+  issues: QualityIssueItem[];
+  total_issues_detected: number;
+  returned_issues_count: number;
+  has_more_issues: boolean;
+  evaluated_columns: string[];
+  detected_special_columns: {
+    email_columns: string[];
+    phone_columns: string[];
+    id_columns: string[];
+  };
+}

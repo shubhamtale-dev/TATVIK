@@ -3,254 +3,232 @@ import {
   Copy,
   AlertCircle,
   FileCheck,
-  Filter,
-  Layers,
-  ArrowRight,
+  Sliders,
+  RotateCcw,
+  HelpCircle,
+  ShieldAlert,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { DemoDataNotice } from '../components/common/DemoDataNotice';
-import { ComingSoonModal } from '../components/common/ComingSoonModal';
+import { FileUploader } from '../components/datasets/FileUploader';
+import { QualityReportView } from '../components/quality/QualityReportView';
+import { analyzeDatasetQuality } from '../lib/api';
+import { QualityAnalysisResult } from '../types';
 
 export const DataQualityPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'all' | 'duplicates' | 'missing' | 'formats' | 'inconsistencies'>('all');
-  const [selectedIssueModal, setSelectedIssueModal] = useState<string | null>(null);
+  const [qualityReport, setQualityReport] = useState<QualityAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const categories = [
+  const handleFileSelected = async (file: File) => {
+    setIsAnalyzing(true);
+    setErrorMessage(null);
+
+    const result = await analyzeDatasetQuality(file);
+
+    setIsAnalyzing(false);
+    if (result.success && result.data) {
+      setQualityReport(result.data);
+    } else {
+      setErrorMessage(result.error || 'Failed to complete dataset quality analysis.');
+    }
+  };
+
+  const handleReset = () => {
+    setQualityReport(null);
+    setErrorMessage(null);
+  };
+
+  const engineRules = [
     {
       id: 'duplicates',
-      title: 'Fuzzy & Exact Duplicates',
+      title: 'Duplicate Row & Identifier Detection',
       icon: Copy,
-      count: '94 detected',
       severity: 'high',
-      description: 'Identifies phonetic collisions, nickname variations, and transposed digits across company names and emails.',
-      sampleRule: 'Jaro-Winkler & Levenshtein distance > 0.88 with domain normalization',
+      description:
+        'Scans for exact identical row tuples and flags potential collisions across primary identifier columns (email, phone, id, uuid).',
+      formula: 'Exact subset tuple matching & case-insensitive identifier group hash',
+      badgeText: 'Exact & Identifier',
     },
     {
       id: 'missing',
-      title: 'Missing Context & Values',
+      title: 'Missing & Blank Sentinel Scanner',
       icon: AlertCircle,
-      count: '148 detected',
       severity: 'high',
-      description: 'Detects critical empty fields, null-equivalent strings (N/A, none, null), and incomplete relational keys.',
-      sampleRule: 'Null-byte and sentinel string detection with frequency interpolation',
+      description:
+        'Detects null values, empty strings, whitespace-only records, and sentinel string equivalents (N/A, NA, none, null, -, ?).',
+      formula: 'Null-byte & whitespace trimming + case-insensitive sentinel set lookup',
+      badgeText: 'Sentinel & Whitespace',
     },
     {
       id: 'formats',
-      title: 'Invalid Data Formats',
+      title: 'Email & Phone Format Validation',
       icon: FileCheck,
-      count: '62 detected',
       severity: 'medium',
-      description: 'Validates RFC 5322 email syntax, E.164 phone formats, ISO 8601 timestamps, and local currency representations.',
-      sampleRule: 'Strict regex schema & locale-aware regex pattern matching',
+      description:
+        'Validates RFC 5322 email syntax and conservative 7-15 digit international phone formats on detected identifier columns.',
+      formula: 'Regex RFC 5322 pattern + conservative digit extraction (7-15 digits)',
+      badgeText: 'Format Rules',
     },
     {
       id: 'inconsistencies',
-      title: 'Relational Inconsistencies',
-      icon: Layers,
-      count: '38 detected',
-      severity: 'medium',
-      description: 'Flags contradictory records such as start dates scheduled after end dates, or zip codes mismatched with stated states.',
-      sampleRule: 'Cross-column temporal order & geographical constraint rules',
+      title: 'Text Inconsistencies & Casing Discrepancies',
+      icon: Sliders,
+      severity: 'low',
+      description:
+        'Surfaces unstripped leading/trailing whitespaces and capitalization variations across text values as actionable suggestions.',
+      formula: 'Normalized string frequency analysis & whitespace boundary check',
+      badgeText: 'Casing & Trim',
     },
   ];
-
-  // Illustrative sample issues
-  const sampleIssues = [
-    {
-      id: 'iss-1',
-      type: 'duplicates',
-      dataset: 'enterprise_leads_q3.csv',
-      field: 'Company Name & Email',
-      original: '"Acme Global Corp" (sales@acmeglobal.com)',
-      flaggedAs: 'Duplicate of Row #41 ("Acme Corp Global")',
-      confidence: '96% Match',
-      severity: 'high',
-    },
-    {
-      id: 'iss-2',
-      type: 'missing',
-      dataset: 'enterprise_leads_q3.csv',
-      field: 'Primary Phone Number',
-      original: 'N/A',
-      flaggedAs: 'Empty critical attribute (Required for outreach)',
-      confidence: '100% Certain',
-      severity: 'high',
-    },
-    {
-      id: 'iss-3',
-      type: 'formats',
-      dataset: 'na_vendors_master.xlsx',
-      field: 'Tax Registration ID',
-      original: 'XX-98124A (Malformed)',
-      flaggedAs: 'Does not match federal EIN standard pattern ##-#######',
-      confidence: '92% Violation',
-      severity: 'medium',
-    },
-    {
-      id: 'iss-4',
-      type: 'inconsistencies',
-      dataset: 'apac_pos_transactions.csv',
-      field: 'Contract Effective Dates',
-      original: 'Start: 2024-06-15, End: 2023-12-01',
-      flaggedAs: 'Chronological paradox: Termination precedes initiation',
-      confidence: '100% Conflict',
-      severity: 'high',
-    },
-  ];
-
-  const filteredIssues = activeTab === 'all'
-    ? sampleIssues
-    : sampleIssues.filter((i) => i.type === activeTab);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-brand-navy-900 tracking-tight">
-            Data Quality Engine
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-brand-navy-900 tracking-tight">
+              Data Quality Engine
+            </h2>
+            <Badge variant="teal" size="md">
+              Part 3 Live Engine
+            </Badge>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
-            Deterministic rule heuristics and semantic anomaly scanner for enterprise datasets.
+            Deterministic rule-based heuristics & anomaly detection for enterprise CSV and Excel spreadsheets.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="teal" size="md">
-            Phase 3 Engine Architecture
-          </Badge>
-        </div>
+
+        {qualityReport && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              Analyze Another File
+            </Button>
+          </div>
+        )}
       </div>
 
-      <DemoDataNotice message="Illustrative Quality Preview: Rules and sample issue cards demonstrate the upcoming detection rules engine." />
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-3 text-rose-800">
+          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-rose-900">Analysis Error</h4>
+            <p className="text-xs text-rose-700 mt-0.5">{errorMessage}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setErrorMessage(null)}
+            className="text-rose-600 hover:text-rose-800 hover:bg-rose-100/50 p-1 h-auto"
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
 
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {categories.map((cat) => (
-          <Card key={cat.id} hoverable className="p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-8 h-8 rounded-lg bg-brand-navy-50 text-brand-navy-800 flex items-center justify-center border border-brand-navy-100">
-                  <cat.icon className="w-4 h-4" />
-                </div>
-                <Badge
-                  variant={cat.severity === 'high' ? 'danger' : 'warning'}
-                  size="sm"
-                >
-                  {cat.count}
-                </Badge>
+      {/* Main View: Report or Upload Form */}
+      {qualityReport ? (
+        <QualityReportView report={qualityReport} onReset={handleReset} />
+      ) : (
+        <div className="space-y-6">
+          {/* File Upload Section */}
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>Upload Dataset for Instant Quality Audit</CardTitle>
+                <CardDescription>
+                  Select or drop a CSV or XLSX file (up to 10 MB). The engine will parse and execute all 7 deterministic checks in-memory without saving data to disk.
+                </CardDescription>
               </div>
-              <h4 className="text-sm font-semibold text-brand-navy-900">{cat.title}</h4>
-              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                {cat.description}
+            </CardHeader>
+            <CardContent>
+              <FileUploader
+                onUpload={handleFileSelected}
+                isLoading={isAnalyzing}
+                errorMessage={errorMessage}
+                onClearError={() => setErrorMessage(null)}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Engine Rules Capabilities Grid */}
+          <div>
+            <div className="mb-3">
+              <h3 className="text-base font-semibold text-brand-navy-900">
+                Rule-Based Detection Capabilities
+              </h3>
+              <p className="text-xs text-slate-500">
+                Deterministic checks implemented in the Part 3 FastAPI backend service.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] font-mono text-slate-400">
-              Rule: {cat.sampleRule}
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      {/* Illustrative Flagged Issues Table */}
-      <Card>
-        <CardHeader>
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle>Sample Flagged Issues & Discrepancies</CardTitle>
-              <Badge variant="neutral" size="sm">
-                Demo Spec
-              </Badge>
-            </div>
-            <CardDescription>
-              Demonstration of how TATVIK surfaces anomalies with confidence metrics and suggested fixes.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <div className="flex gap-1 text-xs">
-              {(['all', 'duplicates', 'missing', 'formats', 'inconsistencies'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-md capitalize transition-colors ${
-                    activeTab === tab
-                      ? 'bg-brand-teal-600 text-white font-medium'
-                      : 'text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {engineRules.map((rule) => {
+                const IconComponent = rule.icon;
+                return (
+                  <Card key={rule.id} hoverable className="p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand-navy-50 text-brand-navy-800 flex items-center justify-center border border-brand-navy-100">
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        <Badge
+                          variant={rule.severity === 'high' ? 'danger' : 'warning'}
+                          size="sm"
+                        >
+                          {rule.badgeText}
+                        </Badge>
+                      </div>
+                      <h4 className="text-sm font-semibold text-brand-navy-900">{rule.title}</h4>
+                      <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        {rule.description}
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] font-mono text-slate-400">
+                      Rule: {rule.formula}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-0">
-          <div className="divide-y divide-slate-100">
-            {filteredIssues.map((issue) => (
-              <div
-                key={issue.id}
-                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
-              >
-                <div className="space-y-1 max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-brand-navy-900">
-                      {issue.field}
-                    </span>
-                    <Badge variant="neutral" size="sm">
-                      {issue.dataset}
-                    </Badge>
-                    <Badge
-                      variant={issue.severity === 'high' ? 'danger' : 'warning'}
-                      size="sm"
-                    >
-                      {issue.confidence}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    <span className="text-slate-400">Found value: </span>
-                    <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-rose-700">
-                      {issue.original}
-                    </span>
-                  </p>
-                  <p className="text-xs text-brand-teal-800 flex items-center gap-1 font-medium">
-                    <ArrowRight className="w-3 h-3 text-brand-teal-600 shrink-0" />
-                    <span>{issue.flaggedAs}</span>
-                  </p>
+          {/* Formula & Explainability Architecture Card */}
+          <Card className="bg-slate-50/70 border-slate-200">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-brand-teal-50 text-brand-teal-700 flex items-center justify-center border border-brand-teal-200 shrink-0">
+                  <HelpCircle className="w-4 h-4" />
                 </div>
-
-                <div className="shrink-0 flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedIssueModal(issue.id)}
-                  >
-                    Review Suggestion (Demo)
-                  </Button>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-brand-navy-900">
+                    Transparent, Explainable Quality Score Formula
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    TATVIK calculates the dataset health score dynamically based on total cells examined and issue severities, strictly bounded between 0.0 and 100.0:
+                  </p>
+                  <div className="bg-white p-3 rounded-md border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto">
+                    <code>
+                      Defect_Rate = (3.0 * High_Issues + 1.5 * Medium_Issues + 0.5 * Low_Issues + 0.1 * Info_Issues) / Total_Cells
+                      <br />
+                      Quality_Score = round(max(0.0, 100.0 * (1.0 - min(1.0, Defect_Rate))), 1)
+                    </code>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs text-slate-500">
+                    <div>• <strong>Grade A:</strong> 90.0 – 100.0%</div>
+                    <div>• <strong>Grade B:</strong> 80.0 – 89.9%</div>
+                    <div>• <strong>Grade C:</strong> 70.0 – 79.9%</div>
+                    <div>• <strong>Grade D/F:</strong> &lt; 70.0%</div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Review Modal */}
-      {selectedIssueModal && (
-        <ComingSoonModal
-          isOpen={!!selectedIssueModal}
-          onClose={() => setSelectedIssueModal(null)}
-          featureName="Interactive Issue Review & Correction Workspace"
-          phaseTarget="Phase 5"
-          description="In Phase 5, users can accept, edit, or reject AI-recommended corrections in real time with side-by-side diffs and automated dataset regeneration."
-          plannedCapabilities={[
-            'Side-by-side cell comparison before applying changes',
-            'Batch accept for high-confidence duplicate merges',
-            'Manual value override with live re-validation',
-            'Immutable audit logging of every operator decision',
-          ]}
-        />
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

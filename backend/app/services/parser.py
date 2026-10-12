@@ -170,19 +170,12 @@ def _parse_xlsx_bytes(content: bytes) -> Tuple[pd.DataFrame, List[str], str]:
         )
 
 
-def parse_dataset_preview(
-    filename: str,
-    content: bytes,
-    preview_limit: int = DEFAULT_PREVIEW_ROWS,
-) -> DatasetPreviewResponse:
-    """Main orchestration function to validate, parse, and generate preview payload."""
+def parse_file_to_dataframe(filename: str, content: bytes) -> Tuple[pd.DataFrame, str, Optional[List[str]], Optional[str]]:
+    """Validates and parses file content into a pandas DataFrame."""
     file_size = len(content)
     ext = validate_file_metadata(filename, file_size)
-
-    effective_limit = min(max(preview_limit, 1), MAX_PREVIEW_ROWS)
     sheet_names: Optional[List[str]] = None
     selected_sheet: Optional[str] = None
-    notice: Optional[str] = None
 
     if ext == ".csv":
         df = _parse_csv_bytes(content)
@@ -190,23 +183,37 @@ def parse_dataset_preview(
     elif ext == ".xlsx":
         df, sheet_names, selected_sheet = _parse_xlsx_bytes(content)
         file_type = "xlsx"
-        if len(sheet_names) > 1:
-            notice = (
-                f"Workbook contains {len(sheet_names)} worksheets ({', '.join(sheet_names)}). "
-                f"Currently previewing the primary worksheet '{selected_sheet}'. "
-                "Multi-sheet selection will be activated in upcoming phases."
-            )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported format '{ext}'.",
         )
 
-    # Empty data check
     if df.empty and len(df.columns) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded file contains no readable columns or tabular data.",
+        )
+
+    return df, file_type, sheet_names, selected_sheet
+
+
+def parse_dataset_preview(
+    filename: str,
+    content: bytes,
+    preview_limit: int = DEFAULT_PREVIEW_ROWS,
+) -> DatasetPreviewResponse:
+    """Main orchestration function to validate, parse, and generate preview payload."""
+    file_size = len(content)
+    df, file_type, sheet_names, selected_sheet = parse_file_to_dataframe(filename, content)
+    effective_limit = min(max(preview_limit, 1), MAX_PREVIEW_ROWS)
+    notice: Optional[str] = None
+
+    if file_type == "xlsx" and sheet_names and len(sheet_names) > 1:
+        notice = (
+            f"Workbook contains {len(sheet_names)} worksheets ({', '.join(sheet_names)}). "
+            f"Currently previewing the primary worksheet '{selected_sheet}'. "
+            "Multi-sheet selection will be activated in upcoming phases."
         )
 
     columns, preview_rows = _sanitize_dataframe_to_records(df, effective_limit)
