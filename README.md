@@ -1,117 +1,65 @@
 # TATVIK
 
-> **AI-Powered Business Data Quality & Research Verification Platform**
+> **AI-Powered Data Intelligence**  
+> *Beyond Data. Discover the Truth.*
 
-[![Status](https://img.shields.io/badge/status-active--development-blue.svg)](#development-roadmap)
-[![Frontend](https://img.shields.io/badge/frontend-React%20%7C%20TypeScript%20%7C%20Vite-blue)](frontend)
-[![Backend](https://img.shields.io/badge/backend-Python%203.11+%20%7C%20FastAPI-green)](backend)
+[![Status](https://img.shields.io/badge/phase-Phase%201%20Complete-emerald.svg)](#development-roadmap)
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Tailwind-blue)](frontend)
+[![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20Python%203.11+-green)](backend)
+[![Tests](https://img.shields.io/badge/tests-pytest%20passing-success)](backend/tests)
 [![License](https://img.shields.io/badge/license-unselected%20(proprietary)-lightgrey)](#license)
 
 ---
 
 ## 📌 Product Vision
 
-**TATVIK** is an intelligent data governance and research verification platform engineered to help enterprises, analysts, and knowledge workers transform messy business datasets into trustworthy, verified insights.
+**TATVIK** is an enterprise data quality and research verification platform engineered to help businesses, market research teams, and operations teams improve the reliability and integrity of their tabular business data.
 
-In modern business workflows, critical decisions rely on tabular data exported from CRM systems, ERPs, scraped directories, and manual data-entry spreadsheets. However, real-world CSV and Excel files are riddled with:
-- Duplicate and near-duplicate records
-- Incomplete columns and missing contextual attributes
-- Inconsistent date, currency, telephone, and address formats
-- Contradictory records across distributed business units
+Modern organizations make critical decisions based on spreadsheets (CSV and Excel) exported from CRMs, ERPs, scraped directories, and manual data-entry teams. In the real world, these files suffer from:
+- Duplicate and near-duplicate records with transposed or conflicting characters
+- Incomplete records and missing critical contextual fields
+- Inconsistent date, currency, phone number, and address formats
+- Logical contradictions across relational fields
 - Unverifiable claims and unsupported factual assertions
 
-**TATVIK** bridges this gap by marrying programmatic data cleansing rules with state-of-the-art LLM-powered semantic verification. It detects subtle anomalies, gathers and attaches verifiable research evidence, presents interactive diff reviews to human operators, tracks every change through an immutable audit trail, and exports pristine, production-ready datasets.
+**TATVIK** provides automated quality scanning, semantic LLM-powered verification, verifiable external research citations, human-in-the-loop correction review, immutable audit histories, and clean dataset exports.
 
 ---
 
-## 🚀 Key & Planned Features
+## 🧭 Phase 1 Scope: Production-Quality Foundation & Dashboard
 
-### 1. Ingestion & Format Validation
-- **Broad File Support**: High-performance parsing of CSV, TSV, XLSX, XLS, and JSONL formats with automatic delimiter and encoding detection (UTF-8, Latin-1, etc.).
-- **Type & Schema Inference**: Automatic detection of column types (dates, integers, floats, emails, URLs, identifiers) with strict format validation.
-- **Large Dataset Streaming**: Chunked ingestion pipeline designed to process large spreadsheets without memory exhaustion.
+Phase 1 establishes a modular, maintainable, and type-safe foundation for the 8-phase development roadmap:
 
-### 2. Intelligent Data Quality Engine
-- **Fuzzy Deduplication**: Identifies exact and semantic duplicates across single or composite keys (e.g., matching `"Acme Corp Inc."` with `"Acme Corporation"`).
-- **Missing Value Handling**: Context-aware imputation recommendations based on adjacent row values and statistical distributions.
-- **Relational Consistency Verification**: Identifies logical contradictions (e.g., zip codes not matching states, start dates after end dates).
+1. **Design System & Visual Identity**:
+   - Executive palette: Deep Navy (`#0B192C`), Muted Teal accent (`#0D9488`), Soft Neutral background (`#F8FAFC`), and subtle Warm Saffron (`#D97706`).
+   - Reusable component library: Button, Card, Badge, Modal, EmptyState, StatCard.
+   - Consistent typography, clear spacing, accessible contrast, and Lucide icons.
 
-### 3. AI-Powered Anomaly Detection & Research Verification
-- **Semantic Data Auditing**: Leverages Large Language Models to detect illogical row contents that programmatic regex rules fail to catch.
-- **Research Evidence Linking**: Automatically queries trusted external databases, search APIs, or enterprise knowledge bases to verify corporate names, addresses, websites, and business registries.
-- **Confidence Scoring**: Each suggested correction comes with an explainability metric and reference source citations.
+2. **Application Shell**:
+   - Responsive Sidebar with active route indicators, mobile collapse drawer, live backend API status ping, and platform phase badge.
+   - Top Navigation featuring breadcrumbs, disabled global search placeholder, notifications popover with empty state, and developer mode identity badge.
 
-### 4. Interactive Review & Correction Workspace
-- **Side-by-Side Diff Inspection**: Visual interface highlighting original vs. suggested corrections before applying any changes.
-- **Batch & Fine-Grained Approvals**: Accept, modify, or reject AI recommendations on a per-cell, per-row, or whole-column basis.
-- **Manual Overrides**: Quick cell editing with real-time validation re-evaluation.
+3. **Complete Dashboard Page (Interactive)**:
+   - Welcome banner with product descriptor and primary "Upload Dataset" action.
+   - 4 summary metrics cards with explicit sample data labeling.
+   - Recent datasets table with format badges, record counts, and inspect actions.
+   - Data quality breakdown with accessible progress indicators for 4 defect categories.
+   - Illustrative recent activity audit feed.
+   - Quick Actions workflow cards.
+   - Reusable "Coming Soon" roadmap modal providing transparent feedback on upcoming capabilities.
 
-### 5. Audit Trail & Version Control
-- **Immutable Change Logs**: Detailed history recording who changed what, when, and whether it was triggered by a human reviewer or an AI recommendation.
-- **Dataset Checkpoints**: Rollback to any prior state or create branching versions for exploratory analysis.
+4. **Dedicated Page Shells**:
+   - **Datasets (`/datasets`)**: Supported file specifications (.csv, .xlsx, .xls) and informative empty state.
+   - **Data Quality (`/quality`)**: Rule engine overview, 4 quality defect categories, and filterable sample issues.
+   - **Research Verification (`/verification`)**: Conceptual evidence grounding architecture and sample verification ledger.
+   - **Audit Logs (`/audit`)**: Immutable governance specification and honest empty state.
+   - **Settings (`/settings`)**: Live FastAPI backend status checker, workspace metadata, and threshold configuration preview.
 
-### 6. Clean Dataset Export & Integrations
-- **Multi-Format Export**: Download cleansed data in CSV, Excel (with formatted headers), Parquet, or JSON format.
-- **Export Filters**: Export only verified rows, exclude unconfirmed changes, or include a companion validation report.
-- **API Access & Webhooks**: Programmatic integration for CI/CD data pipelines.
-
----
-
-## 🏗️ System Architecture
-
-```mermaid
-flowchart TD
-    subgraph Client ["Client Layer"]
-        UI["React + TypeScript SPA<br/>(Tailwind CSS, TanStack Table)"]
-    end
-
-    subgraph API ["Gateway & API Layer"]
-        FastAPI["FastAPI Server (Python 3.11)<br/>Pydantic Validation & Auth"]
-    end
-
-    subgraph Processing ["Processing & Worker Queue"]
-        Celery["Celery Background Workers"]
-        Redis[("Redis Broker & Cache")]
-        Engine["Data Quality Engine<br/>(Pandas / Polars / DuckDB)"]
-    end
-
-    subgraph Intelligence ["AI & Verification Engine"]
-        LLM["LLM Agent Gateway<br/>(OpenAI / Gemini / Anthropic)"]
-        Research["Evidence Collector<br/>(Search & Knowledge APIs)"]
-    end
-
-    subgraph Storage ["Storage Layer"]
-        Postgres[("PostgreSQL<br/>(Metadata, Audits, Users)")]
-        Blob[("Object Storage / Local<br/>(Raw & Clean Datasets)")]
-    end
-
-    UI -->|REST / WebSocket| FastAPI
-    FastAPI -->|Enqueue Jobs| Redis
-    Redis --> Celery
-    Celery --> Engine
-    Engine --> LLM
-    LLM --> Research
-    FastAPI --> Postgres
-    Celery --> Postgres
-    FastAPI --> Blob
-    Celery --> Blob
-```
-
----
-
-## 💻 Technology Stack
-
-| Domain | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Frontend Framework** | React 18 / TypeScript / Vite | High-performance, type-safe single-page interface |
-| **UI Components & Styling** | Tailwind CSS / Lucide React / shadcn-ui | Modern, responsive, and accessible UI components |
-| **Data Grid & State** | TanStack Table v8 / TanStack Query | Virtualized data tables for viewing large tabular files |
-| **Backend Framework** | Python 3.11+ / FastAPI | High-throughput asynchronous REST API and validation |
-| **Data Manipulation** | Polars / Pandas / DuckDB | Memory-efficient parsing, transformation, and deduplication |
-| **Task Queue & Cache** | Celery / Redis | Background processing for large spreadsheet audits |
-| **AI & Verification** | LangChain / LiteLLM / Embeddings | Prompt orchestration, entity verification, semantic checks |
-| **Relational Database** | PostgreSQL + SQLAlchemy / Alembic | User management, dataset metadata, and audit logs |
-| **Containerization** | Docker / Docker Compose | Reproducible local development and production deployments |
+5. **FastAPI Backend Foundation**:
+   - Minimal asynchronous FastAPI server with structured `/api/health` endpoint.
+   - Configurable CORS middleware for local frontend origins.
+   - Structured Pydantic v2 schemas (`HealthResponse`).
+   - Automated test suite with `pytest` and `fastapi.testclient.TestClient`.
 
 ---
 
@@ -119,148 +67,188 @@ flowchart TD
 
 ```text
 tatvik/
-├── .env.example              # Template environment configuration (no secrets)
-├── .gitignore                # Production gitignore for React/TS + Python
-├── README.md                 # Product documentation and setup guide
+├── .env.example                  # Root environment template
+├── .gitignore                    # Production gitignore for React, Python, OS, & Datasets
+├── README.md                     # Comprehensive project documentation
 │
-├── frontend/                 # React + TypeScript client
-│   ├── public/               # Static assets
-│   ├── src/                  # Application source code
-│   │   ├── assets/           # Icons, images, stylesheets
-│   │   ├── components/       # Reusable UI widgets & data tables
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── pages/            # View routes (Upload, Audit, Review, Export)
-│   │   ├── services/         # API client & fetch utilities
-│   │   ├── types/            # TypeScript data contracts & schemas
-│   │   ├── App.tsx           # Root application component
-│   │   └── main.tsx          # Application entrypoint
-│   ├── package.json          # Node dependencies
-│   ├── tsconfig.json         # TypeScript compiler configuration
-│   └── vite.config.ts        # Vite build configuration
+├── frontend/                     # React + TypeScript Client
+│   ├── public/                   # Static public assets
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── common/           # ComingSoonModal, DemoDataNotice
+│   │   │   ├── dashboard/        # WelcomeBanner, StatCard, DatasetsTable, QualityOverview, ActivityFeed, QuickActions
+│   │   │   ├── navigation/       # Sidebar, TopNav
+│   │   │   └── ui/               # Badge, Button, Card, Modal, EmptyState
+│   │   ├── layouts/              # AppLayout (Sidebar + TopNav + Main + Footer)
+│   │   ├── lib/                  # utils.ts (cn, formatters), api.ts (health checker)
+│   │   ├── pages/                # DashboardPage, DatasetsPage, DataQualityPage, ResearchVerificationPage, AuditLogsPage, SettingsPage
+│   │   ├── styles/               # globals.css (Tailwind base and utilities)
+│   │   ├── types/                # TypeScript data interfaces & API contracts
+│   │   ├── App.tsx               # React Router navigation tree
+│   │   ├── main.tsx              # DOM entrypoint
+│   │   └── vite-env.d.ts         # Vite client type definitions
+│   ├── .env.example              # Frontend environment variables template
+│   ├── index.html                # HTML template with Inter typography
+│   ├── package.json              # Node dependencies (React 18, React Router 6, Lucide, Tailwind)
+│   ├── postcss.config.js         # PostCSS configuration
+│   ├── tailwind.config.js        # Brand color system & theme extension
+│   ├── tsconfig.json             # Strict TypeScript compiler options
+│   └── vite.config.ts            # Vite bundler with /api proxy to FastAPI backend
 │
-└── backend/                  # Python FastAPI service
+└── backend/                      # Python FastAPI Service
     ├── app/
-    │   ├── api/              # API route controllers
-    │   ├── core/             # Configuration, logging, and security
-    │   ├── db/               # Database session, models, and migrations
-    │   ├── engine/           # Data quality rules & deduplication logic
-    │   ├── verifier/         # AI verification agents & evidence fetchers
-    │   ├── workers/          # Celery background tasks
-    │   └── main.py           # FastAPI entrypoint
-    ├── tests/                # Unit and integration test suites
-    ├── requirements.txt      # Python dependencies
-    └── pyproject.toml        # Python project configuration
+    │   ├── api/                  # API routers (health.py)
+    │   ├── core/                 # App configuration & CORS settings (config.py)
+    │   ├── schemas/              # Pydantic v2 schemas (health.py)
+    │   └── main.py               # FastAPI entrypoint with CORS & error handlers
+    ├── tests/                    # Automated test suite
+    │   └── test_health.py        # Pytest test cases for root & /api/health
+    ├── .env.example              # Backend environment variables template
+    └── requirements.txt          # Minimal Phase 1 dependencies (fastapi, uvicorn, pydantic, pytest, httpx)
 ```
+
+---
+
+## 💻 Technology Stack
+
+| Layer | Technology | Version | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | React | `^18.3.1` | Single-page UI component architecture |
+| **Language** | TypeScript | `^5.6.3` | Strict static typing and contract safety |
+| **Routing** | React Router | `^6.28.0` | Client-side navigation across app shells |
+| **Styling** | Tailwind CSS | `^3.4.15` | Utility-first styling with custom brand tokens |
+| **Icons** | Lucide React | `^0.378.0` | Modern, consistent iconography |
+| **Bundler** | Vite | `^5.4.11` | Rapid hot-module-reloading and optimized build |
+| **Backend** | FastAPI | `>=0.111.0` | Asynchronous high-performance REST API |
+| **Validation**| Pydantic v2 | `>=2.7.0` | Strict data schema validation and settings |
+| **Server** | Uvicorn | `>=0.30.0` | ASGI web server for Python |
+| **Testing** | Pytest | `>=8.2.0` | Automated backend testing |
 
 ---
 
 ## 🛠️ Getting Started & Setup Instructions
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher ([Download](https://nodejs.org/))
-- **Python**: v3.11 or higher ([Download](https://www.python.org/))
+- **Node.js**: v18.0.0 or higher ([Node.js](https://nodejs.org/))
+- **Python**: v3.11 or higher ([Python](https://www.python.org/))
 - **Git**: Installed and configured
-- **PostgreSQL & Redis**: (Optional for local dev, required for full background workers)
 
 ---
 
-### Step 1: Clone & Environment Setup
+### 1. Backend Setup & Local Server
+
+In your terminal:
 
 ```bash
-# Clone the repository
-git clone https://github.com/shubhamtale-dev/TATVIK.git
-cd tatvik
-
-# Create your local environment configuration
-cp .env.example .env
-```
-
-> **Note**: Update `.env` with your preferred database credentials and LLM API keys. Never commit `.env` to Git.
-
----
-
-### Step 2: Backend Setup (Python / FastAPI)
-
-```bash
-# Navigate to backend directory
 cd backend
 
-# Create and activate a Python virtual environment
+# Create and activate Python virtual environment
 python3 -m venv .venv
-source .venv/bin/activate    # On Windows: .venv\Scripts\activate
+source .venv/bin/activate       # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install --upgrade pip
 pip install -r requirements.txt
 
-# Start the development server
+# (Optional) Copy environment template
+cp .env.example .env
+
+# Start the FastAPI development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API documentation will be available at:
-- **Interactive Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Health Check Endpoint**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc Documentation**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ---
 
-### Step 3: Frontend Setup (React / TypeScript)
+### 2. Frontend Setup & Development Server
 
-In a separate terminal window:
+In a second terminal window:
 
 ```bash
-# Navigate to frontend directory
 cd frontend
 
 # Install dependencies
 npm install
 
-# Start the development server
+# (Optional) Copy environment template
+cp .env.example .env
+
+# Start the Vite development server
 npm run dev
 ```
 
-The web dashboard will be available at:
-- **Vite Local Server**: [http://localhost:3000](http://localhost:3000)
+- **Web Dashboard**: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🗺️ Development Roadmap
+## 🧪 Testing and Build Verification
 
-- [ ] **Phase 1: Ingestion & Core Quality Engine (MVP)**
-  - [x] Repository initialization & architecture setup
-  - [ ] CSV & Excel streaming ingestion pipeline
-  - [ ] Rule-based duplicate detection & missing value scanner
-  - [ ] Format validation (date, currency, phone, email)
-  - [ ] Initial export pipeline (cleaned CSV/XLSX)
+### Run Backend Tests
+With your backend virtual environment activated:
+```bash
+cd backend
+pytest -v
+```
+*Tests verify `GET /` metadata and `GET /api/health` response schema.*
 
-- [ ] **Phase 2: AI Verification & Research Assistant**
-  - [ ] LLM anomaly detection for unstructured text columns
-  - [ ] Evidence verification agent integration
-  - [ ] Confidence scoring & citation reference generator
-  - [ ] Asynchronous task queue for long-running analyses
-
-- [ ] **Phase 3: Interactive Review Workspace & Auditing**
-  - [ ] Side-by-side diff review UI with TanStack Table
-  - [ ] Cell-level accept/reject recommendations
-  - [ ] Immutable audit log & version checkpointing
-  - [ ] Role-based access control (Admin, Reviewer, Viewer)
-
-- [ ] **Phase 4: Enterprise Integrations & Automation**
-  - [ ] Connectors for Google Sheets, Salesforce, HubSpot, and Snowflake
-  - [ ] Webhook triggers and automated scheduled audits
-  - [ ] SOC2 / GDPR compliance reporting
-  - [ ] Self-hosted deployment templates (Helm / Docker Compose)
+### Run Frontend Type Check & Production Build
+```bash
+cd frontend
+npm run build
+```
+*Executes `tsc` (strict TypeScript validation) and `vite build` (production assets bundling).*
 
 ---
 
-## 🔒 Security & Data Privacy Guidelines
+## 🗺️ 8-Phase Development Roadmap
 
-- **Zero Data Leakage**: Do not commit client datasets, production spreadsheets, or sensitive test data (`*.csv`, `*.xlsx`).
-- **Secrets Management**: Keep all API keys, database credentials, and signing secrets in `.env`.
-- **Data Retention**: By default, uploaded working files are stored securely in isolated tenant buckets and can be purged upon job completion.
+- [x] **Phase 1: Production-Quality Foundation & Dashboard**
+  - Architecture setup, executive visual design system, responsive shell.
+  - Interactive Dashboard with sample metrics, datasets table, and defect breakdown.
+  - Dedicated page shells for Datasets, Quality, Research Verification, Audit Logs, and Settings.
+  - Minimal FastAPI backend with `/api/health`, Pydantic schemas, and Pytest suite.
+- [ ] **Phase 2: Streaming File Ingestion & Parser Pipeline**
+  - Chunked streaming upload for CSV, TSV, XLSX, and XLS formats.
+  - Automatic delimiter detection, character encoding inference, and schema mapping.
+- [ ] **Phase 3: Data Quality Heuristics Engine**
+  - Deterministic duplicate scanner with fuzzy Jaro-Winkler string similarity.
+  - Regex format verification (ISO dates, E.164 phone numbers, RFC emails).
+  - Cross-column chronological and logical consistency validators.
+- [ ] **Phase 4: AI Research Verification & Evidence Grounding**
+  - Semantic anomaly detection using LLM orchestration.
+  - Evidence fetching against authoritative registries and external web citations.
+  - Attribute-level confidence scoring and source snapshot archiving.
+- [ ] **Phase 5: Interactive Review Workspace & Diff Inspector**
+  - Side-by-side data grid powered by virtualized TanStack Table.
+  - Per-cell accept, edit, or reject review workflow.
+  - Batch remediation for high-confidence duplicate merges.
+- [ ] **Phase 6: Persistence, Database Models & Immutable Audit Ledger**
+  - PostgreSQL database integration with SQLAlchemy models and Alembic migrations.
+  - Append-only audit trail tracking every human and AI decision.
+- [ ] **Phase 7: User Authentication & Multi-Tenant Organizations**
+  - Role-based access control (Admin, Reviewer, Viewer).
+  - Organization workspace isolation.
+- [ ] **Phase 8: Enterprise Export Pipelines, Integrations & Production Hardening**
+  - Cleaned data export in CSV, formatted Excel, and Parquet.
+  - Webhooks and scheduled automated audits.
+  - SOC2 / GDPR compliance export package.
+
+---
+
+## 🔒 Known Limitations (Phase 1)
+
+As strictly scoped for Phase 1:
+- File uploads are not yet processed; clicking "Upload Dataset" opens an informative roadmap modal detailing Phase 2 streaming ingestion.
+- Displayed numbers and dataset tables on the Dashboard are illustrative demo samples.
+- The global search bar is disabled with a visible tooltip.
+- Settings modifications cannot be saved until database persistence is introduced in Phase 6.
+- No real third-party AI models or external search APIs are invoked.
 
 ---
 
 ## 📄 License
 
 *All rights reserved.*  
-An open-source license has not been selected for this repository at this time. The code and documentation within this project are proprietary and confidential unless explicitly stated otherwise.
+An open-source license has not been selected for this repository at this time. The code and documentation within this project are proprietary and confidential.

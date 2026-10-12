@@ -1,35 +1,26 @@
-"""TATVIK - Application Configuration Module
+"""TATVIK - Application Configuration Module (Phase 1)
 """
 
 from typing import List
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "TATVIK"
-    ENVIRONMENT: str = "development"
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
+    APP_NAME: str = "TATVIK API"
+    APP_ENV: str = "development"
     DEBUG: bool = True
-    SECRET_KEY: str = "tatvik-default-insecure-secret-key-change-in-production"
+    VERSION: str = "0.1.0"
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
     
-    # API configuration
-    API_V1_PREFIX: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ]
+    # Configurable CORS for frontend development
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://tatvik_user:tatvik_password@localhost:5432/tatvik_db"
-
-    # AI Verification
-    OPENAI_API_KEY: str = ""
-    GEMINI_API_KEY: str = ""
-    ANTHROPIC_API_KEY: str = ""
-    DEFAULT_LLM_MODEL: str = "gpt-4o-mini"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    @property
+    def cors_origins_list(self) -> List[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
 settings = Settings()

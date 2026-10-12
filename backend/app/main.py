@@ -1,46 +1,56 @@
-"""TATVIK - Backend API Entrypoint
+"""TATVIK - Production-Quality Foundation API (Phase 1)
 
-AI-powered business data quality and research verification platform.
+AI-Powered Business Data Quality and Research Verification Platform.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.core.config import settings
+from app.api.health import router as health_router
 
 app = FastAPI(
-    title="TATVIK API",
+    title=settings.APP_NAME,
     description="AI-powered business data quality and research verification platform",
-    version="0.1.0",
+    version=settings.VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# CORS Middleware configuration
+# Configurable CORS middleware for local frontend origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
+# Include API Routers
+app.include_router(health_router, prefix="/api", tags=["System"])
 
-@app.get("/", tags=["Health"])
+
+@app.get("/", tags=["System"])
 async def root():
+    """Root status endpoint for quick verification."""
     return {
-        "status": "healthy",
-        "service": "TATVIK Data Quality & Verification API",
-        "version": "0.1.0",
+        "service": settings.APP_NAME,
+        "version": settings.VERSION,
+        "phase": "Phase 1 - Foundation & Dashboard",
+        "docs": "/docs",
+        "health": "/api/health",
     }
 
 
-@app.get("/api/v1/health", tags=["Health"])
-async def health_check():
-    return {
-        "status": "online",
-        "engine": "ready",
-        "checks": {
-            "database": "configured",
-            "deduplication_engine": "ready",
-            "ai_verifier": "ready",
+# Standard Error Handling
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "InternalServerError",
+            "message": "An unexpected error occurred while processing the request.",
+            "path": request.url.path,
         },
-    }
+    )
