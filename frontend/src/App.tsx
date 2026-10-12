@@ -4,6 +4,7 @@ import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { DatasetsPage } from './pages/DatasetsPage';
 import { DataQualityPage } from './pages/DataQualityPage';
+import { ReviewPage } from './pages/ReviewPage';
 import { ResearchVerificationPage } from './pages/ResearchVerificationPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -16,6 +17,7 @@ export const App: React.FC = () => {
           <Route index element={<DashboardPage />} />
           <Route path="datasets" element={<DatasetsPage />} />
           <Route path="quality" element={<DataQualityPage />} />
+          <Route path="review" element={<ReviewPage />} />
           <Route path="verification" element={<ResearchVerificationPage />} />
           <Route path="audit" element={<AuditLogsPage />} />
           <Route path="settings" element={<SettingsPage />} />

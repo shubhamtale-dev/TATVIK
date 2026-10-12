@@ -58,6 +58,8 @@ export interface QualityIssueItem {
   issue_type: string;
   severity: 'high' | 'medium' | 'low' | 'info';
   current_value?: unknown;
+  proposed_value?: unknown;
+  can_auto_correct?: boolean;
   explanation: string;
   suggested_action?: string | null;
 }
@@ -83,4 +85,87 @@ export interface QualityAnalysisResult {
     phone_columns: string[];
     id_columns: string[];
   };
+  session_id?: string | null;
+}
+
+// ==========================================
+// Part 4: Issue Review & Correction Types
+// ==========================================
+
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface CorrectionSuggestionItem {
+  issue_id: string;
+  row_index?: number | null;
+  column_name?: string | null;
+  category: string;
+  issue_type: string;
+  severity: 'high' | 'medium' | 'low' | 'info';
+  original_value?: unknown;
+  proposed_value?: unknown;
+  can_auto_correct: boolean;
+  reason: string;
+  suggested_action?: string | null;
+  status: ReviewStatus;
+  applied: boolean;
+}
+
+export interface AppliedCorrectionItem {
+  issue_id: string;
+  row_index: number;
+  column_name: string;
+  original_value?: unknown;
+  applied_value?: unknown;
+  applied_at: string;
+}
+
+export interface ReviewSessionSummaryData {
+  session_id: string;
+  filename: string;
+  file_type: string;
+  total_rows: number;
+  total_columns: number;
+  total_issues: number;
+  pending_count: number;
+  approved_count: number;
+  rejected_count: number;
+  applied_count: number;
+  auto_correctable_count: number;
+  manual_review_count: number;
+  quality_score: number;
+  score_grade: string;
+  created_at: string;
+}
+
+export interface ReviewSessionDetailData {
+  session_id: string;
+  filename: string;
+  file_type: string;
+  total_rows: number;
+  total_columns: number;
+  columns: string[];
+  summary: ReviewSessionSummaryData;
+  suggestions: CorrectionSuggestionItem[];
+  applied_changes: AppliedCorrectionItem[];
+}
+
+export interface WorkingDatasetPreviewData {
+  session_id: string;
+  filename: string;
+  total_rows: number;
+  total_columns: number;
+  columns: string[];
+  preview_rows: Record<string, unknown>[];
+  total_applied_changes: number;
+  applied_changes: AppliedCorrectionItem[];
+}
+
+export interface ApplyChangesResultData {
+  session_id: string;
+  applied_count: number;
+  applied_changes: AppliedCorrectionItem[];
+  total_applied_to_date: number;
+  remaining_approved_count: number;
+  working_preview_rows: Record<string, unknown>[];
+  message: string;
 }

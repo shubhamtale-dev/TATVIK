@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -14,6 +15,7 @@ import {
   ArrowRight,
   Sliders,
   Filter,
+  CheckSquare,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -32,6 +34,7 @@ export const QualityReportView: React.FC<QualityReportViewProps> = ({
   onReset,
   onViewPreview,
 }) => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -146,7 +149,18 @@ export const QualityReportView: React.FC<QualityReportViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {report.session_id && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate(`/review?session_id=${report.session_id}`)}
+              className="bg-brand-teal-600 hover:bg-brand-teal-700 text-white"
+            >
+              <CheckSquare className="w-3.5 h-3.5 mr-1.5" />
+              Review & Approve Corrections
+            </Button>
+          )}
           {onViewPreview && (
             <Button variant="outline" size="sm" onClick={onViewPreview}>
               View Data Preview

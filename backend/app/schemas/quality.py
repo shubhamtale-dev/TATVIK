@@ -13,6 +13,8 @@ class QualityIssue(BaseModel):
     issue_type: str = Field(..., description="Specific defect identifier (e.g., exact_duplicate_row, invalid_email_format)")
     severity: str = Field(..., description="Severity level: high, medium, low, info")
     current_value: Optional[Any] = Field(None, description="Detected problematic value, or None if empty")
+    proposed_value: Optional[Any] = Field(None, description="Conservative proposed correction value if automated fix is safe, else None")
+    can_auto_correct: bool = Field(False, description="True if a safe automated correction is proposed")
     explanation: str = Field(..., description="Human-readable explanation of why this was flagged")
     suggested_action: Optional[str] = Field(None, description="Recommended remediation action")
 
@@ -37,3 +39,5 @@ class QualityAnalysisResponse(BaseModel):
         ...,
         description="Columns heuristically identified as email, phone, or identifier fields",
     )
+    session_id: Optional[str] = Field(None, description="Active review session identifier if initialized")
+

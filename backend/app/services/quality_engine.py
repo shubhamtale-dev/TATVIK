@@ -175,6 +175,8 @@ def analyze_dataset_quality(
         column_name: Optional[str] = None,
         current_value: Optional[Any] = None,
         suggested_action: Optional[str] = None,
+        proposed_value: Optional[Any] = None,
+        can_auto_correct: bool = False,
     ):
         nonlocal issue_counter
         issue_counter += 1
@@ -191,6 +193,8 @@ def analyze_dataset_quality(
                     issue_type=issue_type,
                     severity=severity,
                     current_value=current_value,
+                    proposed_value=proposed_value,
+                    can_auto_correct=can_auto_correct,
                     explanation=explanation,
                     suggested_action=suggested_action,
                 )
@@ -302,6 +306,7 @@ def analyze_dataset_quality(
 
         # Track casing for categorical consistency
         string_casing_map: Dict[str, Set[str]] = {}
+        casing_row_map: Dict[str, Dict[str, List[int]]] = {}
 
         for row_idx, val in enumerate(df[col], start=1):
             if row_idx in empty_row_indices:
@@ -318,25 +323,38 @@ def analyze_dataset_quality(
                     row_index=row_idx,
                     column_name=col,
                     current_value=str(val) if val is not None else None,
+                    proposed_value=None,
+                    can_auto_correct=False,
                     explanation=f"Missing or blank value: {empty_reason}.",
-                    suggested_action="Provide verified attribute value or leave explicit null.",
+                    suggested_action="Manual entry required: provide verified business value or leave explicit null.",
                 )
                 continue
 
             val_str = str(val)
 
-            # Untrimmed whitespace check
-            if val_str.strip() != val_str:
-                record_issue(
-                    category="inconsistent_values",
-                    issue_type="untrimmed_whitespace",
-                    severity="low",
-                    row_index=row_idx,
-                    column_name=col,
-                    current_value=val_str,
-                    explanation="Value contains unnecessary leading or trailing whitespace.",
-                    suggested_action=f"Trim whitespace to '{val_str.strip()}'.",
-                )
+            # Untrimmed and repeated whitespace check
+            has_leading_trailing = val_str.strip() != val_str
+            has_repeated_spaces = bool(re.search(r"[ \t]{2,}", val_str))
+
+            if has_leading_trailing or has_repeated_spaces:
+                normalized_ws = re.sub(r"[ \t]+", " ", val_str.strip())
+                if normalized_ws != val_str:
+                    record_issue(
+                        category="inconsistent_values",
+                        issue_type="untrimmed_whitespace" if has_leading_trailing else "repeated_whitespace",
+                        severity="low",
+                        row_index=row_idx,
+                        column_name=col,
+                        current_value=val_str,
+                        proposed_value=normalized_ws,
+                        can_auto_correct=True,
+                        explanation=(
+                            "Value contains unnecessary leading or trailing whitespace."
+                            if has_leading_trailing and not has_repeated_spaces
+                            else "Value contains redundant multiple spaces or untrimmed whitespace."
+                        ),
+                        suggested_action=f"Trim and normalize whitespace to '{normalized_ws}'.",
+                    )
 
             clean_val = val_str.strip()
 
@@ -350,8 +368,10 @@ def analyze_dataset_quality(
                         row_index=row_idx,
                         column_name=col,
                         current_value=clean_val,
+                        proposed_value=None,
+                        can_auto_correct=False,
                         explanation=f"Value '{clean_val}' does not match standard RFC email structure.",
-                        suggested_action="Correct syntax error (e.g., missing '@' or domain).",
+                        suggested_action="Manual review required: verify syntax with contact records (e.g., missing '@' or domain).",
                     )
 
             # Phone format validation
@@ -365,36 +385,64 @@ def analyze_dataset_quality(
                         row_index=row_idx,
                         column_name=col,
                         current_value=clean_val,
+                        proposed_value=None,
+                        can_auto_correct=False,
                         explanation=f"Invalid phone structure: {phone_reason}.",
-                        suggested_action="Format with standard country code and 7-15 digits.",
+                        suggested_action="Manual review required: verify standard international country code and digits.",
                     )
 
             # Track casing variants for categorical inspection
             if len(clean_val) < 50:
                 lowered = clean_val.lower()
                 string_casing_map.setdefault(lowered, set()).add(clean_val)
+                casing_row_map.setdefault(lowered, {}).setdefault(clean_val, []).append(row_idx)
 
         # Casing inconsistency check for column
         # Only evaluate if column has limited cardinality (categorical behavior)
-        if 1 < len(string_casing_map) <= 50:
+        if 0 < len(string_casing_map) <= 50:
             for lowered, variants in string_casing_map.items():
                 if len(variants) > 1:
-                    # Pick most common or first as canonical suggestion
-                    canonical = sorted(list(variants))[0]
-                    for variant in variants:
+                    variant_dict = casing_row_map.get(lowered, {})
+                    # Pick dominant canonical variant
+                    canonical = sorted(
+                        list(variants),
+                        key=lambda k: (-len(variant_dict.get(k, [])), k),
+                    )[0]
+                    for variant in sorted(list(variants)):
                         if variant != canonical:
-                            record_issue(
-                                category="inconsistent_values",
-                                issue_type="casing_inconsistency",
-                                severity="low",
-                                column_name=col,
-                                current_value=variant,
-                                explanation=(
-                                    f"Column '{col}' contains inconsistent capitalization variants "
-                                    f"for '{lowered}' (found: {', '.join(sorted(list(variants)))})."
-                                ),
-                                suggested_action=f"Standardize casing to '{canonical}' across dataset.",
-                            )
+                            row_list = variant_dict.get(variant, [])
+                            if row_list:
+                                for r in row_list:
+                                    record_issue(
+                                        category="inconsistent_values",
+                                        issue_type="casing_inconsistency",
+                                        severity="low",
+                                        row_index=r,
+                                        column_name=col,
+                                        current_value=variant,
+                                        proposed_value=canonical,
+                                        can_auto_correct=True,
+                                        explanation=(
+                                            f"Column '{col}' has inconsistent capitalization '{variant}'. "
+                                            f"Dominant canonical format in this column is '{canonical}'."
+                                        ),
+                                        suggested_action=f"Standardize casing to '{canonical}'.",
+                                    )
+                            else:
+                                record_issue(
+                                    category="inconsistent_values",
+                                    issue_type="casing_inconsistency",
+                                    severity="low",
+                                    column_name=col,
+                                    current_value=variant,
+                                    proposed_value=canonical,
+                                    can_auto_correct=True,
+                                    explanation=(
+                                        f"Column '{col}' contains inconsistent capitalization variants "
+                                        f"for '{lowered}' (found: {', '.join(sorted(list(variants)))})."
+                                    ),
+                                    suggested_action=f"Standardize casing to '{canonical}' across dataset.",
+                                )
 
     quality_score, score_grade, formula_explanation = _calculate_quality_score(
         total_cells=total_cells,

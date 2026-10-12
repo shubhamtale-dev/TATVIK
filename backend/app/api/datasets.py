@@ -7,8 +7,10 @@ from app.schemas.dataset import DatasetPreviewResponse, DatasetUploadErrorRespon
 from app.schemas.quality import QualityAnalysisResponse
 from app.services.parser import MAX_FILE_SIZE_BYTES, parse_dataset_preview, parse_file_to_dataframe
 from app.services.quality_engine import analyze_dataset_quality
+from app.services.review_service import review_manager
 
 router = APIRouter()
+
 
 
 @router.post(
@@ -94,9 +96,20 @@ async def analyze_dataset(
     filename = file.filename or "uploaded_dataset"
     df, file_type, _, _ = parse_file_to_dataframe(filename, content)
 
-    return analyze_dataset_quality(
+    analysis = analyze_dataset_quality(
         df=df,
         filename=filename,
         file_type=file_type,
         max_issues=max_issues,
     )
+
+    # Initialize in-memory review session for human-in-the-loop review workflow
+    session = review_manager.create_session(
+        df=df,
+        filename=filename,
+        file_type=file_type,
+        quality_response=analysis,
+    )
+    analysis.session_id = session.session_id
+
+    return analysis

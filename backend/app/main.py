@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.config import settings
 from app.api.health import router as health_router
 from app.api.datasets import router as datasets_router
+from app.api.review import router as review_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,6 +33,8 @@ app.add_middleware(
 # Include API Routers
 app.include_router(health_router, prefix="/api", tags=["System"])
 app.include_router(datasets_router, prefix="/api/datasets", tags=["Datasets"])
+app.include_router(review_router, prefix="/api/review", tags=["Review & Corrections"])
+
 
 
 @app.get("/", tags=["System"])
