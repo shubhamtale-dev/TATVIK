@@ -17,7 +17,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onUploadClick }) => 
       title: 'Import a Dataset',
       description: 'Upload CSV or Excel files for streaming parsing and validation.',
       icon: UploadCloud,
-      badge: 'Phase 2',
+      badge: 'Active',
       onClick: onUploadClick,
       color: 'text-brand-teal-600 bg-brand-teal-50 border-brand-teal-100',
     },

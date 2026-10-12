@@ -50,10 +50,10 @@ credentials.json
 *.sqlite
 *.sqlite3
 *.db
-uploads/
-exports/
-storage/
-datasets/
+/uploads/
+/exports/
+/storage/
+/datasets/
 data/*
 !data/.gitkeep
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Database, Users, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { WelcomeBanner } from '../components/dashboard/WelcomeBanner';
 import { StatCard } from '../components/dashboard/StatCard';
@@ -11,7 +12,7 @@ import { ComingSoonModal } from '../components/common/ComingSoonModal';
 import { DatasetItem, QualityCategory, ActivityItem } from '../types';
 
 export const DashboardPage: React.FC = () => {
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [inspectingDataset, setInspectingDataset] = useState<DatasetItem | null>(null);
 
   // Sample Datasets for development baseline
@@ -129,10 +130,10 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Demo Notice Banner */}
-      <DemoDataNotice message="Phase 1 Dashboard Preview: Key metrics, datasets, and activity feeds below represent illustrative demo figures." />
+      <DemoDataNotice message="TATVIK Dashboard Preview: KPI figures and activity logs below represent sample baseline figures. Use the Datasets tab to upload and preview live CSV/XLSX spreadsheets." />
 
       {/* Welcome Section */}
-      <WelcomeBanner onUploadClick={() => setIsUploadModalOpen(true)} />
+      <WelcomeBanner onUploadClick={() => navigate('/datasets')} />
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -171,7 +172,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <QuickActions onUploadClick={() => setIsUploadModalOpen(true)} />
+      <QuickActions onUploadClick={() => navigate('/datasets')} />
 
       {/* Core Grid: Datasets Table & Quality Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -192,33 +193,18 @@ export const DashboardPage: React.FC = () => {
         <ActivityFeed activities={sampleActivities} />
       </div>
 
-      {/* Upload Coming Soon Modal */}
-      <ComingSoonModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        featureName="Dataset Upload & Streaming Ingestion"
-        phaseTarget="Phase 2 (File Ingestion & Parsers)"
-        description="The dataset upload engine is scheduled for Phase 2. It will support chunked streaming uploads of CSV, TSV, XLSX, and XLS files, automatic encoding detection, and schema inference."
-        plannedCapabilities={[
-          'Drag-and-drop file uploader for files up to 100MB',
-          'Automatic delimiter (comma, semicolon, tab) detection',
-          'Header mapping and schema type inference',
-          'High-performance Polars & DuckDB streaming ingestion',
-        ]}
-      />
-
       {/* Inspect Dataset Modal */}
       {inspectingDataset && (
         <ComingSoonModal
           isOpen={!!inspectingDataset}
           onClose={() => setInspectingDataset(null)}
           featureName={`Inspect Dataset: ${inspectingDataset.name}`}
-          phaseTarget="Phase 2 & Phase 3"
-          description={`Full interactive spreadsheet viewing for "${inspectingDataset.filename}" with cell-by-cell error highlighting and inline diff review will be available in Phase 3.`}
+          phaseTarget="Phase 3 & Phase 5"
+          description={`Full interactive spreadsheet viewing for "${inspectingDataset.filename}" with cell-by-cell error highlighting and inline diff review will be available in Phase 3 & 5.`}
           plannedCapabilities={[
             `Record count: ${inspectingDataset.recordCount.toLocaleString()} rows`,
             `Detected anomalies: ${inspectingDataset.issueCount} items`,
-            'Virtual scrolling TanStack Table data grid',
+            'Virtual scrolling data grid with TanStack Table',
             'Side-by-side diff comparison with original values',
           ]}
         />

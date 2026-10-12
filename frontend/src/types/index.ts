@@ -35,3 +35,17 @@ export interface BackendHealth {
   environment: string;
   cors_origins: string[];
 }
+
+export interface DatasetPreviewData {
+  filename: string;
+  file_size_bytes: number;
+  file_type: 'csv' | 'xlsx';
+  total_rows: number;
+  total_columns: number;
+  columns: string[];
+  preview_rows: Record<string, unknown>[];
+  preview_row_count: number;
+  sheet_names?: string[] | null;
+  selected_sheet?: string | null;
+  notice?: string | null;
+}

@@ -1,4 +1,4 @@
-"""TATVIK - Production-Quality Foundation API (Phase 1)
+"""TATVIK - API Entrypoint (Phase 2)
 
 AI-Powered Business Data Quality and Research Verification Platform.
 """
@@ -6,9 +6,11 @@ AI-Powered Business Data Quality and Research Verification Platform.
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
 from app.api.health import router as health_router
+from app.api.datasets import router as datasets_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -29,6 +31,7 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(health_router, prefix="/api", tags=["System"])
+app.include_router(datasets_router, prefix="/api/datasets", tags=["Datasets"])
 
 
 @app.get("/", tags=["System"])
@@ -37,13 +40,31 @@ async def root():
     return {
         "service": settings.APP_NAME,
         "version": settings.VERSION,
-        "phase": "Phase 1 - Foundation & Dashboard",
+        "phase": "Part 2 - Real CSV/Excel Upload & Dataset Preview",
         "docs": "/docs",
         "health": "/api/health",
+        "endpoints": {
+            "health": "/api/health",
+            "preview_upload": "/api/datasets/preview",
+        },
     }
 
 
-# Standard Error Handling
+# HTTP Exception Handler for structured user-safe responses
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    detail_msg = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "RequestError",
+            "message": detail_msg,
+            "status_code": exc.status_code,
+        },
+    )
+
+
+# General Exception Handler (Fallback without exposing stack traces)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
