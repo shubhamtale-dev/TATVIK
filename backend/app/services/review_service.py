@@ -24,6 +24,7 @@ from app.schemas.review import (
     ReviewSessionDetailResponse,
     ReviewSessionSummary,
 )
+from app.schemas.verification import VerificationResultItem
 
 
 def _safe_json_value(val: Any) -> Any:
@@ -89,10 +90,39 @@ class ReviewSession:
             )
 
         self.applied_changes: List[AppliedCorrection] = []
+        self.verification_results: Dict[str, VerificationResultItem] = {}
 
     def touch(self):
         """Updates last accessed timestamp."""
         self.last_accessed_at = datetime.now(timezone.utc)
+
+    def store_verification_results(self, items: List[VerificationResultItem]) -> None:
+        """Stores evidence-based verification results without modifying dataset."""
+        self.touch()
+        for item in items:
+            self.verification_results[item.claim_id] = item
+
+    def get_verification_results(
+        self, status_filter: Optional[str] = None
+    ) -> List[VerificationResultItem]:
+        """Retrieves stored verification results, optionally filtered by status."""
+        self.touch()
+        if not status_filter or status_filter == "all":
+            return list(self.verification_results.values())
+        return [r for r in self.verification_results.values() if r.status == status_filter]
+
+    def update_manual_assessment(
+        self, claim_id: str, assessment: str, notes: Optional[str] = None
+    ) -> Optional[VerificationResultItem]:
+        """Records a human reviewer assessment for a claim without modifying dataset."""
+        self.touch()
+        if claim_id in self.verification_results:
+            item = self.verification_results[claim_id]
+            item.manual_assessment = assessment if assessment != "cleared" else None
+            if notes is not None:
+                item.manual_notes = notes
+            return item
+        return None
 
     def get_summary(self) -> ReviewSessionSummary:
         """Calculates dynamic summary metrics for this session."""
@@ -128,7 +158,7 @@ class ReviewSessionManager:
 
     def __init__(self, ttl_seconds: int = 7200, max_sessions: int = 50):
         self._sessions: Dict[str, ReviewSession] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.ttl_seconds = ttl_seconds
         self.max_sessions = max_sessions
 
@@ -370,6 +400,40 @@ class ReviewSessionManager:
             suggestions=filtered_suggestions,
             applied_changes=session.applied_changes,
         )
+
+    def store_verification_results(
+        self, session_id: str, items: List[VerificationResultItem]
+    ) -> List[VerificationResultItem]:
+        """Stores research verification results on a session."""
+        with self._lock:
+            session = self.get_session(session_id)
+            if not session:
+                raise KeyError(f"Review session '{session_id}' not found or has expired.")
+            session.store_verification_results(items)
+            return list(session.verification_results.values())
+
+    def get_verification_results(
+        self, session_id: str, status_filter: Optional[str] = None
+    ) -> List[VerificationResultItem]:
+        """Retrieves research verification results for a session."""
+        with self._lock:
+            session = self.get_session(session_id)
+            if not session:
+                raise KeyError(f"Review session '{session_id}' not found or has expired.")
+            return session.get_verification_results(status_filter)
+
+    def update_manual_assessment(
+        self, session_id: str, claim_id: str, assessment: str, notes: Optional[str] = None
+    ) -> VerificationResultItem:
+        """Records a human reviewer assessment on an evidence record."""
+        with self._lock:
+            session = self.get_session(session_id)
+            if not session:
+                raise KeyError(f"Review session '{session_id}' not found or has expired.")
+            updated = session.update_manual_assessment(claim_id, assessment, notes)
+            if not updated:
+                raise KeyError(f"Claim ID '{claim_id}' not found in session '{session_id}'.")
+            return updated
 
     def _cleanup_locked(self):
         """Removes expired sessions when lock is already held."""

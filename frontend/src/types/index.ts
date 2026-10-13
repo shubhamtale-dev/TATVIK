@@ -169,3 +169,71 @@ export interface ApplyChangesResultData {
   working_preview_rows: Record<string, unknown>[];
   message: string;
 }
+
+// ==========================================
+// Part 5: Research Verification & Source Evidence Types
+// ==========================================
+
+export type VerificationStatus =
+  | 'supported_by_evidence'
+  | 'conflicting_evidence'
+  | 'needs_manual_review'
+  | 'unable_to_verify'
+  | 'not_configured';
+
+export type ManualAssessmentType = 'verified' | 'flagged' | 'dismissed' | 'cleared';
+
+export interface EvidenceSourceItem {
+  title: string;
+  url: string;
+  domain: string;
+  source_type: 'official' | 'third_party';
+  snippet: string;
+}
+
+export interface VerificationResultItemData {
+  claim_id: string;
+  row_index: number;
+  column_name: string;
+  context_column?: string | null;
+  claim_text: string;
+  status: VerificationStatus;
+  status_label: string;
+  confidence_score?: number | null;
+  evidence_summary: string;
+  explanation: string;
+  sources: EvidenceSourceItem[];
+  retrieval_timestamp: string;
+  provider_name: string;
+  provider_warning?: string | null;
+  manual_assessment?: ManualAssessmentType | null;
+  manual_notes?: string | null;
+}
+
+export interface ProviderStatusData {
+  configured: boolean;
+  provider_name: string;
+  available_providers: string[];
+  timeout_seconds: number;
+  max_claims_per_batch: number;
+  setup_instructions: string;
+}
+
+export interface VerificationBatchResponseData {
+  total_claims: number;
+  completed_count: number;
+  status_counts: Record<string, number>;
+  results: VerificationResultItemData[];
+  provider_configured: boolean;
+  provider_name: string;
+  message: string;
+}
+
+export interface VerificationBatchRequestData {
+  session_id?: string;
+  column_name: string;
+  context_column?: string;
+  claim_type: string;
+  row_indices: number[];
+  custom_claim_template?: string;
+}

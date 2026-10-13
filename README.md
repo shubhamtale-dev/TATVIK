@@ -3,10 +3,10 @@
 > **AI-Powered Data Intelligence**  
 > *Beyond Data. Discover the Truth.*
 
-[![Status](https://img.shields.io/badge/phase-Part%204%20Complete-emerald.svg)](#development-roadmap)
+[![Status](https://img.shields.io/badge/phase-Part%205%20Complete-emerald.svg)](#development-roadmap)
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Tailwind-blue)](frontend)
 [![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20pandas%20%7C%20openpyxl-green)](backend)
-[![Tests](https://img.shields.io/badge/tests-30%2F30%20pytest%20passing-success)](backend/tests)
+[![Tests](https://img.shields.io/badge/tests-46%2F46%20pytest%20passing-success)](backend/tests)
 [![License](https://img.shields.io/badge/license-unselected%20(proprietary)-lightgrey)](#license)
 
 ---
@@ -22,7 +22,53 @@ Modern organizations make critical decisions based on spreadsheets (CSV and Exce
 - Logical contradictions across relational fields
 - Unverifiable claims and unsupported factual assertions
 
-**TATVIK** provides automated quality scanning, deterministic rule heuristics, conservative correction proposals, human-in-the-loop review and approval, immutable audit histories, and clean dataset exports.
+**TATVIK** provides automated quality scanning, deterministic rule heuristics, conservative correction proposals, human-in-the-loop review and approval, evidence-grounded external research verification, immutable audit histories, and clean dataset exports.
+
+---
+
+## 🌐 Part 5: Research Verification & Source Evidence
+
+Part 5 introduces an evidence-based research verification pipeline allowing users to select dataset columns and rows, define factual claims, evaluate evidence citations from authoritative sources, and record human reviewer assessments without altering the source dataset.
+
+### 1. Grounded & Transparent External Verification
+- **Zero Fabrication**: TATVIK never invents citations, quotes, URLs, or verification results.
+- **Honest Unconfigured State**: If search credentials are not configured, the engine transparently returns status `not_configured` without pretending external search occurred or scraping sites indiscriminately.
+- **Search Provider Layer**: Extensible provider interface (`ResearchProvider`) supporting:
+  - `TavilyResearchProvider` (Tavily search API)
+  - `SerpApiResearchProvider` (SerpApi Google search API)
+  - `MockResearchProvider` (deterministic offline test provider)
+  - `NoopResearchProvider` (transparent unconfigured fallback)
+- **Air-Gapped Credentials**: API keys (`TAVILY_API_KEY`, `SERPAPI_API_KEY`) are read strictly from backend environment variables and are never leaked to frontend code or network logs.
+
+### 2. Authority & Domain Discrimination
+- **Official Sources**: Prioritizes target entity domains (extracted from website/email columns) and official regulatory government registries (`.gov`, `sec.gov`, `companieshouse.gov.uk`, `fmc.gov`, `cslb.ca.gov`).
+- **Third-Party Sources**: Labeled transparently as commercial directories, business indices, or press releases.
+- **Contradiction Detection**: Explicitly scans retrieved excerpts for negative status indicators (`"permanently closed"`, `"dissolved"`, `"bankruptcy"`, `"cease and desist"`) to flag conflicting evidence.
+
+### 3. Verification Outcomes
+Every claim evaluates to one of five deterministic outcomes:
+1. `supported_by_evidence`: Corroborated by primary official domain or multiple independent business directories.
+2. `conflicting_evidence`: Search citations reveal contradictory indicators or business cessation.
+3. `needs_manual_review`: Ambiguous mentions or weak matches requiring human reviewer inspection.
+4. `unable_to_verify`: Zero matching records found or request timeout/rate limit safely handled.
+5. `not_configured`: Honest notification that search credentials are not set in the backend environment.
+
+### 4. Absolute Dataset Immutability
+- Research verification is non-destructive. Running claim verification never alters raw dataset values or approved working dataset values.
+- Source evidence citations and manual reviewer notes are tracked alongside review sessions as an audit trail.
+
+### 5. Verification Backend API (`/api/verification`)
+- `GET /api/verification/provider-status`: Check active provider credentials, timeout, batch limits, and setup guide.
+- `POST /api/verification/verify-batch`: Run evidence verification on up to 20 selected rows from an active review session.
+- `POST /api/verification/verify-upload`: Upload CSV/XLSX and verify selected records in a single call.
+- `GET /api/verification/sessions/{session_id}/results`: Retrieve stored verification records with status filters.
+- `POST /api/verification/sessions/{session_id}/assessment/{claim_id}`: Record manual operator assessment (`verified`, `flagged`, `dismissed`, `cleared`) and audit notes.
+
+### 6. Verification User Interface (`/verification`)
+- **Provider Status Indicator**: Real-time badge in header with one-click setup modal explaining environment variable configuration.
+- **Claim Configuration**: Choose target column (e.g. company name), supporting context column (e.g. website, address), and claim type (`entity_existence`, `website_official`, `address_presence`, or custom template).
+- **Row Selector**: Preview table with interactive checkboxes to submit up to 20 rows per batch.
+- **Evidence Audit Cards**: Rich cards with claim statements, status badges, confidence pills, grounded citations with clickable links, domain pills, official/third-party tags, and operator decision buttons.
 
 ---
 
@@ -200,18 +246,19 @@ npm run dev
 - **Dataset Ingestion**: [http://localhost:3000/datasets](http://localhost:3000/datasets)
 - **Data Quality Scanner**: [http://localhost:3000/quality](http://localhost:3000/quality)
 - **Issue Review & Corrections**: [http://localhost:3000/review](http://localhost:3000/review)
+- **Research Verification**: [http://localhost:3000/verification](http://localhost:3000/verification)
 
 ---
 
 ## 🧪 Testing and Verification
 
-### Run Backend Tests (30 Test Cases)
+### Run Backend Tests (46 Test Cases)
 With the backend virtual environment active:
 ```bash
 cd backend
 pytest -v
 ```
-*Tests cover: valid CSV/XLSX, Latin-1 encoding, multi-sheet workbooks, empty files, unsupported extensions, oversized files, corrupt files, preview limits, exact duplicate rows, sentinel values, email/phone formats, text casing heuristics, quality score bounds, suggestion approvals/rejections, applying only approved changes, preserving original dataset immutability, bulk decisions, invalid issue IDs, duplicate application prevention, and mixed data types.*
+*Tests cover: valid CSV/XLSX, Latin-1 encoding, multi-sheet workbooks, empty files, unsupported extensions, oversized files, corrupt files, preview limits, exact duplicate rows, sentinel values, email/phone formats, text casing heuristics, quality score bounds, suggestion approvals/rejections, applying only approved changes, preserving original dataset immutability, bulk decisions, invalid issue IDs, duplicate application prevention, mixed data types, unconfigured search provider honest status, official vs third-party source discrimination, supporting/conflicting/ambiguous/insufficient evidence outcomes, search provider timeout and rate-limit resilience, raw snippet HTML/script sanitization, verification dataset immutability, batch parameter bounds, manual assessment lifecycle, and direct CSV verification upload.*
 
 ### Run Frontend Production Build
 ```bash
@@ -243,10 +290,13 @@ npm run build
   - Dual-dataset architecture preserving original raw data while maintaining working copy.
   - Single and bulk approval/rejection workflows with confirmation modal.
   - Live working dataset preview and audit change log.
-- [ ] **Phase 5: AI Research Verification & Evidence Grounding**
-  - Semantic anomaly detection using LLM orchestration.
-  - Evidence fetching against authoritative registries and external web citations.
-  - Attribute-level confidence scoring and source snapshot archiving.
+- [x] **Phase 5: Research Verification & Source Evidence**
+  - Grounded verification engine evaluating factual claims against external search citations without fabrication.
+  - Pluggable search providers (Tavily, SerpApi, Mock, Noop) with strict backend-only API key security.
+  - Distinguishes official company/government domains from third-party business directories.
+  - Conflict indicator detection (permanently closed, bankruptcy, dissolution).
+  - Complete non-destructive immutability guarantee on source data.
+  - Human operator assessment recording (verified, flagged, dismissed) with internal audit notes.
 - [ ] **Phase 6: Interactive Diff Inspector & Extended Remediation Workspace**
   - Side-by-side data grid powered by virtualized TanStack Table.
   - Per-cell manual value override with live re-validation.
@@ -261,11 +311,11 @@ npm run build
 
 ---
 
-## 🔒 Known Limitations (Phase 4)
+## 🔒 Known Limitations (Phase 5)
 
-- Dataset review sessions are maintained strictly in-memory and will expire after server restarts or TTL expiration (PostgreSQL persistence planned for Phase 7).
+- Dataset review and verification records are maintained in-memory for active sessions and will reset on server restarts (PostgreSQL persistence planned for Phase 7).
 - Manual in-cell value overriding for complex ambiguous errors will be introduced in Phase 6.
-- External web research and LLM validation will be added in Phase 5.
+- Full automated multi-source consensus synthesis with LLM reasoner will be enhanced in subsequent enterprise pipeline phases.
 
 ---
 

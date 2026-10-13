@@ -12,6 +12,14 @@ from .review import (
     ApplyChangesResponse,
     WorkingDatasetPreviewResponse,
 )
+from .verification import (
+    EvidenceSource,
+    VerificationResultItem,
+    VerificationBatchRequest,
+    VerificationBatchResponse,
+    ProviderStatusResponse,
+    ManualAssessmentRequest,
+)
 
 __all__ = [
     "HealthResponse",
@@ -28,5 +36,11 @@ __all__ = [
     "BulkDecisionResponse",
     "ApplyChangesResponse",
     "WorkingDatasetPreviewResponse",
+    "EvidenceSource",
+    "VerificationResultItem",
+    "VerificationBatchRequest",
+    "VerificationBatchResponse",
+    "ProviderStatusResponse",
+    "ManualAssessmentRequest",
 ]
 

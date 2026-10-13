@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Check,
   X,
@@ -10,6 +11,7 @@ import {
   CheckSquare,
   Square,
   Eye,
+  FileCheck2,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -213,6 +215,16 @@ export const ReviewWorkspace: React.FC<ReviewWorkspaceProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Link to={`/verification?session_id=${session.session_id}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-brand-navy-800 border-brand-navy-200 hover:bg-brand-navy-50"
+              >
+                <FileCheck2 className="w-4 h-4 mr-1.5 text-brand-navy-600" />
+                Research Claims
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

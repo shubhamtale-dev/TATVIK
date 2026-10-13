@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.api.health import router as health_router
 from app.api.datasets import router as datasets_router
 from app.api.review import router as review_router
+from app.api.verification import router as verification_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api", tags=["System"])
 app.include_router(datasets_router, prefix="/api/datasets", tags=["Datasets"])
 app.include_router(review_router, prefix="/api/review", tags=["Review & Corrections"])
+app.include_router(verification_router, prefix="/api/verification", tags=["Research Verification"])
 
 
 
@@ -62,6 +64,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         content={
             "error": "RequestError",
             "message": detail_msg,
+            "detail": detail_msg,
             "status_code": exc.status_code,
         },
     )
