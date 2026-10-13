@@ -13,6 +13,8 @@ from app.api.health import router as health_router
 from app.api.datasets import router as datasets_router
 from app.api.review import router as review_router
 from app.api.verification import router as verification_router
+from app.api.auth import router as auth_router
+from app.db.base import init_db
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,17 +24,23 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Initialize database schema tables on startup
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
 # Configurable CORS middleware for local frontend origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # Include API Routers
 app.include_router(health_router, prefix="/api", tags=["System"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(datasets_router, prefix="/api/datasets", tags=["Datasets"])
 app.include_router(review_router, prefix="/api/review", tags=["Review & Corrections"])
 app.include_router(verification_router, prefix="/api/verification", tags=["Research Verification"])

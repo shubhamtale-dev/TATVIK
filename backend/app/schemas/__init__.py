@@ -20,6 +20,14 @@ from .verification import (
     ProviderStatusResponse,
     ManualAssessmentRequest,
 )
+from .persistent_dataset import (
+    DatasetSummaryItem,
+    DatasetListResponse,
+    DatasetDetailResponse,
+    RenameDatasetRequest,
+    AuthStatusResponse,
+    UserProfileResponse,
+)
 
 __all__ = [
     "HealthResponse",
@@ -42,5 +50,11 @@ __all__ = [
     "VerificationBatchResponse",
     "ProviderStatusResponse",
     "ManualAssessmentRequest",
+    "DatasetSummaryItem",
+    "DatasetListResponse",
+    "DatasetDetailResponse",
+    "RenameDatasetRequest",
+    "AuthStatusResponse",
+    "UserProfileResponse",
 ]
 

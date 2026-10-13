@@ -237,3 +237,45 @@ export interface VerificationBatchRequestData {
   row_indices: number[];
   custom_claim_template?: string;
 }
+
+// ==========================================
+// Part 6: Authentication & Persistent Datasets
+// ==========================================
+
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  role: string;
+}
+
+export interface AuthStatusData {
+  configured: boolean;
+  provider: string;
+  supabase_url?: string | null;
+  setup_instructions: string;
+}
+
+export interface PersistentDatasetSummary {
+  id: string;
+  filename: string;
+  file_type: string;
+  file_size_bytes: number;
+  total_rows: number;
+  total_columns: number;
+  quality_score?: number | null;
+  score_grade?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PersistentDatasetListResponse {
+  total: number;
+  items: PersistentDatasetSummary[];
+}
+
+export interface PersistentDatasetDetail extends PersistentDatasetSummary {
+  columns: string[];
+  preview_rows: Record<string, unknown>[];
+  session_id?: string | null;
+}
+

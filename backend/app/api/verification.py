@@ -11,9 +11,12 @@ Provides REST endpoints to:
 import json
 from typing import List, Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Path, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Query, UploadFile, status
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.db.base import get_db
+from app.db.models import DatasetRecord
 from app.schemas.dataset import DatasetUploadErrorResponse
 from app.schemas.verification import (
     ManualAssessmentRequest,
@@ -22,6 +25,7 @@ from app.schemas.verification import (
     VerificationBatchResponse,
     VerificationResultItem,
 )
+from app.services.dataset_service import sync_session_to_db
 from app.services.parser import MAX_FILE_SIZE_BYTES, parse_file_to_dataframe
 from app.services.quality_engine import analyze_dataset_quality
 from app.services.review_service import review_manager
@@ -68,7 +72,10 @@ async def get_provider_status() -> ProviderStatusResponse:
         "Grounds claims using the configured search provider without modifying the source dataset."
     ),
 )
-async def verify_batch_for_session(request: VerificationBatchRequest) -> VerificationBatchResponse:
+async def verify_batch_for_session(
+    request: VerificationBatchRequest,
+    db: Session = Depends(get_db),
+) -> VerificationBatchResponse:
     """Evaluates claims for selected rows in an active session."""
     if not request.session_id:
         raise HTTPException(
@@ -103,6 +110,14 @@ async def verify_batch_for_session(request: VerificationBatchRequest) -> Verific
 
     # Persist verification items on the in-memory session
     review_manager.store_verification_results(request.session_id, batch_response.results)
+
+    # Sync to DB if this is a persistent session
+    if request.session_id.startswith("rev-ds-"):
+        dataset_id = request.session_id[4:]
+        dataset_rec = db.query(DatasetRecord).filter(DatasetRecord.id == dataset_id).first()
+        updated_session = review_manager.get_session(request.session_id)
+        if dataset_rec and updated_session:
+            sync_session_to_db(db, dataset_rec.user_id, dataset_id, updated_session)
 
     return batch_response
 
@@ -239,6 +254,7 @@ async def record_manual_assessment(
     session_id: str = Path(..., description="Active session ID"),
     claim_id: str = Path(..., description="Verification claim ID"),
     body: ManualAssessmentRequest = ...,
+    db: Session = Depends(get_db),
 ) -> VerificationResultItem:
     """Records reviewer evaluation without altering underlying dataset."""
     allowed = {"verified", "flagged", "dismissed", "cleared"}
@@ -249,11 +265,20 @@ async def record_manual_assessment(
         )
 
     try:
-        return review_manager.update_manual_assessment(
+        result = review_manager.update_manual_assessment(
             session_id=session_id,
             claim_id=claim_id,
             assessment=body.assessment,
             notes=body.notes,
         )
+
+        if session_id.startswith("rev-ds-"):
+            dataset_id = session_id[4:]
+            dataset_rec = db.query(DatasetRecord).filter(DatasetRecord.id == dataset_id).first()
+            session = review_manager.get_session(session_id)
+            if dataset_rec and session:
+                sync_session_to_db(db, dataset_rec.user_id, dataset_id, session)
+
+        return result
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))

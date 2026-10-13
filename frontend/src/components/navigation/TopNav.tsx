@@ -4,11 +4,12 @@ import {
   Menu,
   Search,
   Bell,
-  User,
-  Shield,
   CheckCircle2,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { useAuth } from '../../context/AuthContext';
 
 interface TopNavProps {
   onOpenSidebar: () => void;
@@ -17,6 +18,7 @@ interface TopNavProps {
 export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
+  const { user, signOut, openAuthModal } = useAuth();
 
   const getPageMeta = (pathname: string) => {
     switch (pathname) {
@@ -116,23 +118,42 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
           )}
         </div>
 
-        {/* User profile / Dev mode area */}
+        {/* User profile / Authentication Area */}
         <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-          <div className="w-8 h-8 rounded-full bg-brand-navy-100 border border-brand-navy-200 flex items-center justify-center text-brand-navy-800">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="hidden sm:block text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-slate-800">
-                Admin Reviewer
-              </span>
-              <Badge variant="saffron" size="sm">
-                <Shield className="w-3 h-3 text-brand-saffron-600" />
-                Dev Mode
-              </Badge>
+          {user ? (
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-brand-teal-100 border border-brand-teal-300 flex items-center justify-center text-brand-teal-800 font-bold text-xs">
+                {user.email ? user.email[0].toUpperCase() : 'U'}
+              </div>
+              <div className="hidden sm:block text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-slate-800 truncate max-w-[130px]">
+                    {user.email?.split('@')[0] || 'User'}
+                  </span>
+                  <Badge variant="teal" size="sm">
+                    Auth
+                  </Badge>
+                </div>
+                <p className="text-[10px] text-slate-400 truncate max-w-[140px]">{user.email}</p>
+              </div>
+              <button
+                onClick={signOut}
+                title="Sign out of current session"
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <p className="text-[10px] text-slate-400">workspace: local-sandbox</p>
-          </div>
+          ) : (
+            <button
+              onClick={openAuthModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-teal-600 text-white hover:bg-brand-teal-700 shadow-2xs transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

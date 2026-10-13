@@ -11,8 +11,11 @@ Provides REST endpoints to:
 
 from typing import List, Optional
 
-from fastapi import APIRouter, File, HTTPException, Path, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile, status
+from sqlalchemy.orm import Session
 
+from app.db.base import get_db
+from app.db.models import DatasetRecord
 from app.schemas.dataset import DatasetUploadErrorResponse
 from app.schemas.review import (
     AppliedCorrection,
@@ -25,6 +28,7 @@ from app.schemas.review import (
     ReviewSessionSummary,
     WorkingDatasetPreviewResponse,
 )
+from app.services.dataset_service import sync_session_to_db
 from app.services.parser import MAX_FILE_SIZE_BYTES, parse_file_to_dataframe
 from app.services.quality_engine import analyze_dataset_quality
 from app.services.review_service import review_manager
@@ -129,6 +133,7 @@ async def decide_single_suggestion(
     payload: ReviewDecisionRequest,
     session_id: str = Path(..., description="Review session ID"),
     issue_id: str = Path(..., description="Issue identifier to update"),
+    db: Session = Depends(get_db),
 ):
     """Updates review decision on a specific issue."""
     try:
@@ -137,6 +142,12 @@ async def decide_single_suggestion(
             issue_id=issue_id,
             decision=payload.decision.lower(),
         )
+        if session_id.startswith("rev-ds-"):
+            dataset_id = session_id[4:]
+            dataset_rec = db.query(DatasetRecord).filter(DatasetRecord.id == dataset_id).first()
+            session = review_manager.get_session(session_id)
+            if dataset_rec and session:
+                sync_session_to_db(db, dataset_rec.user_id, dataset_id, session)
         return suggestion
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
@@ -153,6 +164,7 @@ async def decide_single_suggestion(
 async def bulk_decide_suggestions(
     payload: BulkReviewDecisionRequest,
     session_id: str = Path(..., description="Review session ID"),
+    db: Session = Depends(get_db),
 ):
     """Applies a review decision to multiple suggestions in batch."""
     try:
@@ -161,6 +173,12 @@ async def bulk_decide_suggestions(
             issue_ids=payload.issue_ids,
             decision=payload.decision.lower(),
         )
+        if session_id.startswith("rev-ds-"):
+            dataset_id = session_id[4:]
+            dataset_rec = db.query(DatasetRecord).filter(DatasetRecord.id == dataset_id).first()
+            session = review_manager.get_session(session_id)
+            if dataset_rec and session:
+                sync_session_to_db(db, dataset_rec.user_id, dataset_id, session)
         return BulkDecisionResponse(
             session_id=session_id,
             decision=payload.decision.lower(),
@@ -184,11 +202,19 @@ async def bulk_decide_suggestions(
 async def apply_approved_changes(
     session_id: str = Path(..., description="Review session ID"),
     preview_limit: int = Query(50, ge=1, le=100, description="Number of preview rows to return"),
+    db: Session = Depends(get_db),
 ):
     """Applies approved modifications to working copy, leaving original dataset unchanged."""
     try:
         applied_count, newly_applied, summary = review_manager.apply_approved_changes(session_id)
         working_preview = review_manager.get_working_preview_rows(session_id, limit=preview_limit)
+
+        if session_id.startswith("rev-ds-"):
+            dataset_id = session_id[4:]
+            dataset_rec = db.query(DatasetRecord).filter(DatasetRecord.id == dataset_id).first()
+            session = review_manager.get_session(session_id)
+            if dataset_rec and session:
+                sync_session_to_db(db, dataset_rec.user_id, dataset_id, session)
 
         msg = (
             f"Successfully applied {applied_count} approved correction(s) to working dataset."

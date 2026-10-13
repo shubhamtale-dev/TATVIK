@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     RESEARCH_TIMEOUT_SECONDS: int = 10
     RESEARCH_MAX_CLAIMS_PER_BATCH: int = 20
 
+    # Database & Storage (Part 6)
+    DATABASE_URL: str = "sqlite:///./tatvik.db"
+    STORAGE_DIR: str = "./storage/uploads"
+
+    # Supabase Authentication & Project Secrets (Part 6)
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+    SUPABASE_JWT_SECRET: Optional[str] = None
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
@@ -58,6 +68,23 @@ class Settings(BaseSettings):
         if self.RESEARCH_PROVIDER in ("tavily", "serpapi"):
             return self.RESEARCH_PROVIDER
         return "none"
+
+    @property
+    def is_supabase_configured(self) -> bool:
+        """Determines if Supabase public project credentials are configured."""
+        return bool(
+            self.SUPABASE_URL
+            and self.SUPABASE_URL.strip()
+            and self.SUPABASE_ANON_KEY
+            and self.SUPABASE_ANON_KEY.strip()
+        )
+
+    @property
+    def is_supabase_service_configured(self) -> bool:
+        """Determines if Supabase service role key is present for backend admin tasks."""
+        return bool(
+            self.SUPABASE_SERVICE_ROLE_KEY and self.SUPABASE_SERVICE_ROLE_KEY.strip()
+        )
 
 
 settings = Settings()

@@ -12,9 +12,32 @@ import {
   VerificationBatchResponseData,
   VerificationResultItemData,
   ManualAssessmentType,
+  UserProfile,
+  AuthStatusData,
+  PersistentDatasetSummary,
+  PersistentDatasetListResponse,
+  PersistentDatasetDetail,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+let currentAuthToken: string | null = null;
+
+export function setApiAuthToken(token: string | null) {
+  currentAuthToken = token;
+}
+
+export function getApiAuthToken(): string | null {
+  return currentAuthToken;
+}
+
+function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (currentAuthToken) {
+    headers['Authorization'] = `Bearer ${currentAuthToken}`;
+  }
+  return headers;
+}
 
 export async function checkBackendHealth(): Promise<{
   online: boolean;
@@ -55,6 +78,7 @@ export async function uploadDatasetPreview(
 
     const response = await fetch(`${API_BASE}/datasets/preview?limit=${limit}`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     });
 
@@ -92,6 +116,7 @@ export async function analyzeDatasetQuality(
 
     const response = await fetch(`${API_BASE}/datasets/analyze?max_issues=${maxIssues}`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     });
 
@@ -553,5 +578,210 @@ export async function recordManualAssessment(
     const message =
       err instanceof Error ? err.message : 'Network error occurred while recording assessment.';
     return { success: false, error: message };
+  }
+}
+
+// ==========================================
+// Part 6: Authentication & Persistent Datasets API
+// ==========================================
+
+export async function getAuthStatus(): Promise<{
+  success: boolean;
+  data?: AuthStatusData;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/auth/status`, {
+      headers: getAuthHeaders(),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return { success: false, error: responseBody.detail || 'Failed to fetch auth status' };
+    }
+    return { success: true, data: responseBody as AuthStatusData };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Auth status unreachable';
+    return { success: false, error: msg };
+  }
+}
+
+export async function getCurrentUser(): Promise<{
+  success: boolean;
+  data?: UserProfile;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return { success: false, error: responseBody.detail || 'Unauthorized' };
+    }
+    return { success: true, data: responseBody as UserProfile };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Profile unreachable';
+    return { success: false, error: msg };
+  }
+}
+
+export async function listUserDatasets(params?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  success: boolean;
+  data?: PersistentDatasetListResponse;
+  error?: string;
+}> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.limit) query.append('limit', String(params.limit));
+    if (params?.offset) query.append('offset', String(params.offset));
+
+    const response = await fetch(`${API_BASE}/datasets?${query.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseBody.detail || `Failed to list datasets (HTTP ${response.status})`,
+      };
+    }
+    return { success: true, data: responseBody as PersistentDatasetListResponse };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to retrieve datasets';
+    return { success: false, error: msg };
+  }
+}
+
+export async function uploadPersistentDataset(
+  file: File,
+  maxIssues: number = 500
+): Promise<{
+  success: boolean;
+  data?: PersistentDatasetDetail;
+  error?: string;
+}> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/datasets/upload?max_issues=${maxIssues}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseBody.detail || `Upload failed (HTTP ${response.status})`,
+      };
+    }
+    return { success: true, data: responseBody as PersistentDatasetDetail };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to upload persistent dataset';
+    return { success: false, error: msg };
+  }
+}
+
+export async function getUserDataset(datasetId: string): Promise<{
+  success: boolean;
+  data?: PersistentDatasetDetail;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/datasets/${datasetId}`, {
+      headers: getAuthHeaders(),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseBody.detail || `Failed to load dataset (HTTP ${response.status})`,
+      };
+    }
+    return { success: true, data: responseBody as PersistentDatasetDetail };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to fetch dataset';
+    return { success: false, error: msg };
+  }
+}
+
+export async function renameUserDataset(
+  datasetId: string,
+  filename: string
+): Promise<{
+  success: boolean;
+  data?: PersistentDatasetSummary;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/datasets/${datasetId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ filename }),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseBody.detail || `Failed to rename dataset (HTTP ${response.status})`,
+      };
+    }
+    return { success: true, data: responseBody as PersistentDatasetSummary };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to rename dataset';
+    return { success: false, error: msg };
+  }
+}
+
+export async function deleteUserDataset(datasetId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/datasets/${datasetId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const responseBody = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: responseBody.detail || `Failed to delete dataset (HTTP ${response.status})`,
+      };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to delete dataset';
+    return { success: false, error: msg };
+  }
+}
+
+export async function restoreDatasetSession(datasetId: string): Promise<{
+  success: boolean;
+  data?: ReviewSessionDetailData;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/datasets/${datasetId}/restore-session`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    const responseBody = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseBody.detail || `Failed to restore session (HTTP ${response.status})`,
+      };
+    }
+    return { success: true, data: responseBody as ReviewSessionDetailData };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to restore session';
+    return { success: false, error: msg };
   }
 }

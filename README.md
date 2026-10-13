@@ -3,10 +3,11 @@
 > **AI-Powered Data Intelligence**  
 > *Beyond Data. Discover the Truth.*
 
-[![Status](https://img.shields.io/badge/phase-Part%205%20Complete-emerald.svg)](#development-roadmap)
+[![Status](https://img.shields.io/badge/phase-Part%206%20Complete-emerald.svg)](#development-roadmap)
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Tailwind-blue)](frontend)
-[![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20pandas%20%7C%20openpyxl-green)](backend)
-[![Tests](https://img.shields.io/badge/tests-46%2F46%20pytest%20passing-success)](backend/tests)
+[![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20SQLAlchemy%20%7C%20pandas-green)](backend)
+[![Database](https://img.shields.io/badge/database-Supabase%20PostgreSQL%20%2F%20SQLite-blueviolet)](backend/migrations)
+[![Tests](https://img.shields.io/badge/tests-54%2F54%20pytest%20passing-success)](backend/tests)
 [![License](https://img.shields.io/badge/license-unselected%20(proprietary)-lightgrey)](#license)
 
 ---
@@ -23,6 +24,44 @@ Modern organizations make critical decisions based on spreadsheets (CSV and Exce
 - Unverifiable claims and unsupported factual assertions
 
 **TATVIK** provides automated quality scanning, deterministic rule heuristics, conservative correction proposals, human-in-the-loop review and approval, evidence-grounded external research verification, immutable audit histories, and clean dataset exports.
+
+---
+
+## 🔐 Part 6: Authentication, Database & Persistent Datasets
+
+Part 6 adds secure user authentication and durable multi-tenant storage, allowing users to retain their uploaded datasets, quality scores, approved corrections, applied working copies, and external verification evidence across server restarts and user sessions.
+
+### 1. Multi-Tenant Architecture & Server-Side Isolation
+- **Supabase Authentication**: Integrated via `@supabase/supabase-js` and backend JWT verification (`HS256` secret verification, Supabase Auth REST verification, and secure local dev token fallback).
+- **Server-Side Ownership Enforcement**: Requests never rely on client-supplied user identifiers. Every query strictly enforces `DatasetRecord.user_id == current_user.id` and returns `404 Not Found` for unauthorized attempts to prevent identifier enumeration.
+- **Private File Storage**: Uploaded spreadsheet binaries are stored in isolated user directories (`storage/uploads/{user_id}/`) with path-traversal safeguards and filename sanitization.
+- **Honest Unconfigured Notice**: If Supabase credentials are not configured, the frontend and API transparently return an unconfigured status with documentation links rather than fabricating authentication.
+
+### 2. Dual-Dataset Preservation & Compact Storage
+- **Original vs Working Copy**: The pristine source upload (`original_data_matrix`) is strictly preserved intact in the database, while applied modifications are stored in an isolated working copy (`working_data_matrix`).
+- **Compact 2D Matrix Encoding**: Tabular data is stored as column-indexed 2D arrays (`[[val1, val2], ...]`), reducing storage overhead by over 70% compared to repeated JSON object keys.
+- **Two-Way Synchronization**: When review decisions, bulk approvals, or research verifications occur, changes automatically persist to PostgreSQL/SQLite transparently.
+- **Session Restoration**: Active review and verification sessions can be restored on demand across app restarts via `POST /api/datasets/{id}/restore-session`.
+
+### 3. Database Schema (`backend/migrations/001_initial_schema.sql`)
+- `users`: User identity records synchronized with Supabase Auth (`id`, `email`, `created_at`).
+- `datasets`: User-owned dataset metadata, file sizes, row/col counts, and quality scores (`id`, `user_id`, `filename`, `file_type`, `file_size_bytes`, `total_rows`, `total_columns`, `quality_score`, `score_grade`).
+- `dataset_data`: Compact 2D JSON matrices for original and working copies (`dataset_id`, `original_data_json`, `working_data_json`).
+- `quality_issues`: Detected quality defects and categorization history.
+- `correction_suggestions`: Proposed fixes, auto-correctability, and review decisions (`pending`, `approved`, `rejected`).
+- `applied_corrections`: Audit log of applied modifications (`issue_id`, `row_index`, `column_name`, `original_value`, `applied_value`, `applied_at`).
+- `verification_results`: Grounded research claims, citations, and manual human reviewer assessments.
+- **Row Level Security (RLS)**: PostgreSQL policies enforce `auth.uid() = user_id`.
+
+### 4. Authentication & Persistent Datasets API
+- `GET /api/auth/status`: Check Supabase configuration state, active provider, and setup guide.
+- `GET /api/auth/me`: Fetch authenticated user profile.
+- `GET /api/datasets`: List user-owned persistent datasets with search and pagination.
+- `POST /api/datasets/upload`: Upload, analyze, and save dataset with private binary and database records.
+- `GET /api/datasets/{id}`: Retrieve dataset metadata and working preview with strict ownership verification.
+- `PATCH /api/datasets/{id}`: Rename user dataset.
+- `DELETE /api/datasets/{id}`: Cascade delete dataset records, storage files, and active session memory.
+- `POST /api/datasets/{id}/restore-session`: Reconstruct working DataFrames into an active review and verification session.
 
 ---
 
